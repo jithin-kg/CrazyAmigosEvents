@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose  = require('mongoose');
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
+const jwt = require('jsonwebtoken')
 
 const Event = require('../models/events');
 const Participants = require('../models/participants');
@@ -17,129 +18,164 @@ const Participants = require('../models/participants');
 
 //user logIn
 router.post('/login',jsonParser, function(req, res, next) {
-    console.log('hi')
-    if(req.body.username ==="Bucky" && req.body.password === "1234five"){
-        res.status(200).json({message:'successfully logged in'})
-    }else {
-        res.status(400).json({message:'invalid username or password'})
+  const  user = {
+      username : "bucky",
+      password : "1234five"
+
     }
+    jwt.sign({user:user},'secretKey',{expiresIn: '59s'}, function (err, token) {
+        res.json(
+            {
+                "result": true,
+                access_token: token,
+
+            })
+        
+    })
 
 });
 
 // console.log(rn(options))
 
 /* GET users listing. */
-router.post('/login',jsonParser, function(req, res, next) {
-    const username = req.body.username
-    const password = req.body.password
-    if(username ==='Bucky' && password ==="1234five" ){
-        res.status(200).json({message: 'successfully logged in'})
-    }else {
-        res.status(400).json({message:'invalid username or password'})
-    }
-
-});
+// router.post('/login',jsonParser, function(req, res, next) {
+//     const username = req.body.username
+//     const password = req.body.password
+//     if(username ==='Bucky' && password ==="1234five" ){
+//         res.status(200).json({message: 'successfully logged in'})
+//     }else {
+//         res.status(400).json({message:'invalid username or password'})
+//     }
+//
+// });
 
 
 //create a new Event
-router.post('/create_event',jsonParser, function (req, res, next) {
-    console.log(req.body.event_name)
-
-    let event_id = 1234; //sample id
-
-    Event.findOne({event_name: req.body.event_name},function (err, eventData) {
-        if(!err){
-            console.log(eventData)
-            if (!eventData){
-                console.log(req.body.event_name)
-                const event = new Event({
-                    _id : new mongoose.Types.ObjectId(),
-                    event_name : req.body.event_name,  //bodyParser to parse body data/name
-                    days : req.body.days,
-                    no_of_participants: req.body.no_of_participants,
-                    // event_id: event_id
-                });
-                event.save()
-                    .then(result => {
-                        console.log(result)
-                        res.status(200).json({
-                            message: 'created  event successfully',
-                            createdEvent: {
-                                name: result.event_name,
-                                days: result.days,
-                                _id: result._id,
-                                // event_id:event_id,
-                                request : {
-                                    type: 'GET',
-                                    url: 'http://localhost:3000/api/createEvent' + result._id
-                                }
-                            }
-                        })
-                    })
-            }else {
-                res.status(202).json({message:'The event already exist'})
-            }
+router.post('/create_event',verifyToken,jsonParser, function (req, res, next) {
+    //verify the token
+    jwt.verify(req.token, 'secretKey', function (err, authData) {
+        if (err){
+            res.status(403).json({message: 'error while verifying token'})
         }else {
-            res.status(400).json({message:'Sorry something went wrong'})
-        }
+            // res.json({
+            //     message :'verified',
+            //     authData
+            //
+            // })
 
-    })
+               console.log('auth verified successfully ')
+            //save the new event
 
-
-});
-
-//add_participant
-router.post('/add_participant',jsonParser, function (req, res, next) {
-    console.log('insied ad particpant')
-    Participants.findOne({email_address: req.body.email_address },function (err, participantData) {
-        if (!err) {
-            console.log(participantData)
-            Event.findOne({event_name: req.body.event_name},function (err, eventData) {
-                if(!err ) {
-                    console.log(req.body.event_id)
-                    // const idOfTheEvent = eventData._id
-
-                    if (!participantData) {
-                        const participant = new Participants({
-                            _id :new mongoose.Types.ObjectId(),
-                           event_id : req.body.event_id,  //bodyParser to parse body data/name
-                            name : req.body.name,
-                            phone_number: req.body.phone_number,
-                            email_address: req.body.email_address,
-                            organization: req.body.organization,
-                                });
-                        participant.save()
+                Event.findOne({event_name: req.body.event_name},function (err, eventData) {
+                if(!err){
+                    console.log(eventData)
+                    if (!eventData){
+                        const event = new Event({
+                            _id : new mongoose.Types.ObjectId(),
+                            event_name : req.body.event_name,  //bodyParser to parse body data/name
+                            days : req.body.days,
+                            no_of_participants: req.body.no_of_participants,
+                            date: req.body.date,
+                            venue: req.body.venue
+                            // event_id: event_id
+                        });
+                        event.save()
                             .then(result => {
                                 console.log(result)
-                                res.status(201).json({
-                                    message: 'created  participant successfully',
+                                res.status(200).json({
+                                    message: 'created  event successfully',
                                     createdEvent: {
-                                        name: result.name,
-                                        phone_number: result.phone_number,
+                                        name: result.event_name,
+                                        days: result.days,
+                                        date: result.date,
+                                        venue: result.venue,
                                         _id: result._id,
-                                        event_id: result.event_id,
+                                        // event_id:event_id,
                                         request : {
                                             type: 'GET',
-                                            url: 'http://localhost:3000/api/createParticipant' + result._id
+                                            url: 'http://localhost:3000/api/createEvent' + result._id
                                         }
                                     }
                                 })
                             })
                     }else {
-                        console.log("there is a participant with the given details")
+                        res.status(202).json({message:'The event already exist'})
                     }
-                    if (!eventData) {
-                        console.log("there is no such event found")
-                    }
+                }else {
+                    res.status(400).json({message:'Sorry something went wrong'})
                 }
-
             })
-        }else {
-            console.log("something went wrong while finding the participant")
         }
+        
     })
+
+
+
 });
 
+//add_participant
+router.post('/add_participant', verifyToken, jsonParser, function (req, res, next) {
+    console.log('insied ad particpant')
+    //verify token
+    jwt.verify(req.token, 'secretKey', function (err, authData) {
+        if (err) {
+            res.status(403).json({message: 'error while verifying token'})
+        }else {
+            //save data if verified
+            Participants.findOne({email_address: req.body.email_address },function (err, participantData) {
+                if (!err) {
+                    const eventId = req.body.event_id
+                    console.log(participantData)
+                    // Event.findOne({event_name: req.body.event_name},function (err, eventData) {
+                    Event.findOne({_id: eventId},function (err, eventData) {
+                        if(!err ) {
+                            console.log(req.body.event_id)
+                            // const idOfTheEvent = eventData._id
+
+                            if (!participantData) {
+                                const participant = new Participants({
+                                    _id :new mongoose.Types.ObjectId(),
+                                    event_id : req.body.event_id,  //bodyParser to parse body data/name
+                                    name : req.body.name,
+                                    phone_number: req.body.phone_number,
+                                    email_address: req.body.email_address,
+                                    organization: req.body.organization,
+                                });
+                                participant.save()
+                                    .then(result => {
+                                        console.log(result)
+                                        res.status(200).json({
+                                            message: 'created  participant successfully',
+                                            createdEvent: {
+                                                name: result.name,
+                                                phone_number: result.phone_number,
+                                                _id: result._id,
+                                                event_id: result.event_id,
+                                                request : {
+                                                    type: 'POST',
+                                                    url: 'http://localhost:3000/api/createParticipant' + result._id
+                                                }
+                                            }
+                                        })
+                                    })
+                            }else {
+                                console.log("there is a participant with the given details")
+                            }
+                            if (!eventData) {
+                                console.log("there is no such event found")
+                            }
+                        }
+
+                    })
+                }else {
+                    console.log("something went wrong while finding the participant")
+                }
+            })
+
+        }
+    });
+
+});
 
 //list all Events
 router.get('/list_events',function (req, res, next) {
@@ -153,6 +189,27 @@ router.get('/list_events',function (req, res, next) {
     })
 
 })
+
+//token
+function verifyToken(req, res, next){
+    //get auth header value
+    const bearerHeader = req.headers['authorization'];
+    //check if bearer is undefined
+    if(typeof bearerHeader !=="undefined"){
+        //split at the space
+        const bearer = bearerHeader.split(' ');
+        //Get token from the array
+        const bearerToken = bearer[1];
+        //set the token
+        req.token = bearerToken;
+        //call the next middleware
+        next();
+
+    }else {
+        res.status(403).json({message:'forebidden'})
+    }
+
+}
 
 
 
