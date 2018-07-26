@@ -24,14 +24,19 @@ router.post('/login',jsonParser, function(req, res, next) {
       password : "1234five"
 
     }
-    jwt.sign({user:user},'secretKey',{expiresIn: '5d'}, function (err, token) {
-        res.json(
-            {
-                "result": true,
-                access_token: token,
+   if(req.body.username === "bucky" && req.body.password ==="1234five"){
+       jwt.sign({user:user},'secretKey',{expiresIn: '5d'}, function (err, token) {
+           res.json(
+               {
+                   "result": true,
+                   access_token: token,
 
-            })
-    })
+               })
+       })
+   }else{
+       res.status(400).json({message:"Please enter a valid username and password"})
+   }
+
 
 });
 
