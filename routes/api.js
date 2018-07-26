@@ -24,14 +24,13 @@ router.post('/login',jsonParser, function(req, res, next) {
       password : "1234five"
 
     }
-    jwt.sign({user:user},'secretKey',{expiresIn: '1h'}, function (err, token) {
+    jwt.sign({user:user},'secretKey',{expiresIn: '5d'}, function (err, token) {
         res.json(
             {
                 "result": true,
                 access_token: token,
 
             })
-        
     })
 
 });
@@ -114,7 +113,7 @@ router.post('/create_event',verifyToken,jsonParser, function (req, res, next) {
 
 //add_participant
 router.post('/add_participant', verifyToken, jsonParser, function (req, res, next) {
-    console.log('insied ad particpant')
+    console.log('inside ad particpant')
     //verify token
     jwt.verify(req.token, 'secretKey', function (err, authData) {
         if (err) {
@@ -132,6 +131,7 @@ router.post('/add_participant', verifyToken, jsonParser, function (req, res, nex
                             // const idOfTheEvent = eventData._id
 
                             if (!participantData) {
+                                console.log("inside save participant")
                                 const participant = new Participants({
                                     _id :new mongoose.Types.ObjectId(),
                                     event_id : req.body.event_id,  //bodyParser to parse body data/name
@@ -234,6 +234,7 @@ router.post('/daily_register', verifyToken, jsonParser, function (req, res, next
                 if (!err) {
                     // Event.findOne({event_name: req.body.event_name},function (err, eventData) {
                     Register.findOne({reg_id:req.body.reg_id},function (err, registerData) {
+                        console.log(registerData)
                         if(!err ) {
                             console.log(req.body.event_id)
                             // const idOfTheEvent = eventData._id
@@ -246,11 +247,12 @@ router.post('/daily_register', verifyToken, jsonParser, function (req, res, next
                                 const register = new Register ({
                                     _id :new mongoose.Types.ObjectId(),
                                     event_id : req.body.event_id,  //bodyParser to parse body data/name
-                                    reg_id : req.body.name,
+                                    reg_id : req.body.reg_id,
                                     date: req.body.date
                                 });
                                 register.save()
                                     .then(result => {
+                                        console.log("inside save register")
                                         console.log(result)
                                         res.status(200).json({
                                             message: 'created  register successfully',
@@ -266,9 +268,12 @@ router.post('/daily_register', verifyToken, jsonParser, function (req, res, next
                                         })
                                     })
                             }
-                            if (!eventData) {
+                            if (!participantData) {
                                 console.log("there is no such event found")
                             }
+                        }else {
+                            console.log("error while getting  participant data")
+
                         }
 
                     })
@@ -280,6 +285,26 @@ router.post('/daily_register', verifyToken, jsonParser, function (req, res, next
         }
     });
 
+});
+//get the attendance of a participant
+router.post('/get_attendance',verifyToken,function (req, res, next) {
+    console.log("inside get attendance");
+    jwt.verify(req.token, 'secretKey', function (err, authData) {
+        if (err) {
+            res.status(403).json({message: 'error while verifying token'})
+        } else {
+            Register.find({reg_id:req.body.reg_id}, function (err, partcpntRegDoc) {
+                if (err) {
+                    res.status(400).json({message: "There was an error while getting Register"})
+                }
+                if (partcpntRegDoc) {
+                    res.status(200).json({attendance: partcpntRegDoc})
+                    console.log(partcpntRegDoc[2])
+                }
+
+            })
+        }
+    });
 });
 
 
