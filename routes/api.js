@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken')
 
 const Event = require('../models/events');
 const Participants = require('../models/participants');
+const Register = require('../models/register');
 
 // const rn = require('random-number');
 // const options = {
@@ -23,7 +24,7 @@ router.post('/login',jsonParser, function(req, res, next) {
       password : "1234five"
 
     }
-    jwt.sign({user:user},'secretKey',{expiresIn: '59s'}, function (err, token) {
+    jwt.sign({user:user},'secretKey',{expiresIn: '1h'}, function (err, token) {
         res.json(
             {
                 "result": true,
@@ -55,7 +56,7 @@ router.post('/create_event',verifyToken,jsonParser, function (req, res, next) {
     //verify the token
     jwt.verify(req.token, 'secretKey', function (err, authData) {
         if (err){
-            res.status(403).json({message: 'error while verifying token'})
+            res.status(403).json({message: 'error while verifying token'});
         }else {
             // res.json({
             //     message :'verified',
@@ -109,8 +110,6 @@ router.post('/create_event',verifyToken,jsonParser, function (req, res, next) {
         
     })
 
-
-
 });
 
 //add_participant
@@ -140,6 +139,7 @@ router.post('/add_participant', verifyToken, jsonParser, function (req, res, nex
                                     phone_number: req.body.phone_number,
                                     email_address: req.body.email_address,
                                     organization: req.body.organization,
+                                    reg_id:req.body.reg_id
                                 });
                                 participant.save()
                                     .then(result => {
@@ -151,6 +151,7 @@ router.post('/add_participant', verifyToken, jsonParser, function (req, res, nex
                                                 phone_number: result.phone_number,
                                                 _id: result._id,
                                                 event_id: result.event_id,
+                                                reg_id:req.body.reg_id,
                                                 request : {
                                                     type: 'POST',
                                                     url: 'http://localhost:3000/api/createParticipant' + result._id
@@ -178,17 +179,110 @@ router.post('/add_participant', verifyToken, jsonParser, function (req, res, nex
 });
 
 //list all Events
-router.get('/list_events',function (req, res, next) {
-    Event.find({},{}, function (err, eventsDoc) {
-        if (err){
-           res.status(404).json({message: "There was an error while getting events"})
-        } if(eventsDoc){
-            res.status(200).json({message: eventsDoc})
-        }
-        
-    })
+router.post('/list_events',verifyToken,function (req, res, next) {
+    console.log("inside list events");
+    jwt.verify(req.token, 'secretKey', function (err, authData) {
+        if (err) {
+            res.status(403).json({message: 'error while verifying token'})
+        } else {
+            Event.find({}, {}, function (err, eventsDoc) {
+                if (err) {
+                    res.status(404).json({message: "There was an error while getting events"})
+                }
+                if (eventsDoc) {
+                    res.status(200).json({events: eventsDoc})
+                    console.log(eventsDoc[2])
+                }
 
-})
+            })
+        }
+    });
+});
+
+//list all participants
+router.post('/list_participants',verifyToken,function (req, res, next) {
+    console.log("inside list events");
+    jwt.verify(req.token, 'secretKey', function (err, authData) {
+        if (err) {
+            res.status(403).json({message: 'error while verifying token'})
+        } else {
+            Participants.find({}, {}, function (err, participantstsDoc) {
+                if (err) {
+                    res.status(400).json({message: "There was an error while getting participants"})
+                }
+                if (eventsDoc) {
+                    res.status(200).json({events: participantstsDoc})
+                    console.log(participantstsDoc[2])
+                }
+
+            })
+        }
+    });
+});
+
+
+//daily Register
+router.post('/daily_register', verifyToken, jsonParser, function (req, res, next) {
+    console.log('inside ad register')
+    //verify token
+    jwt.verify(req.token, 'secretKey', function (err, authData) {
+        if (err) {
+            res.status(403).json({message: 'error while verifying token'})
+        }else {
+            //save data if verified
+            Participants.findOne({reg_id: req.body.reg_id },function (err, participantData) {
+                if (!err) {
+                    // Event.findOne({event_name: req.body.event_name},function (err, eventData) {
+                    Register.findOne({reg_id:req.body.reg_id},function (err, registerData) {
+                        if(!err ) {
+                            console.log(req.body.event_id)
+                            // const idOfTheEvent = eventData._id
+
+                            if (!participantData) {
+                                res.status(400).json({message:'There is no record of the participant'})
+
+                            }else {
+                                console.log("there is a participant with the given details")
+                                const register = new Register ({
+                                    _id :new mongoose.Types.ObjectId(),
+                                    event_id : req.body.event_id,  //bodyParser to parse body data/name
+                                    reg_id : req.body.name,
+                                    date: req.body.date
+                                });
+                                register.save()
+                                    .then(result => {
+                                        console.log(result)
+                                        res.status(200).json({
+                                            message: 'created  register successfully',
+                                            createdEvent: {
+                                                event_id : req.body.event_id,  //bodyParser to parse body data/name
+                                                reg_id : req.body.name,
+                                                date: req.body.date,
+                                                request : {
+                                                    type: 'POST',
+                                                    url: 'http://localhost:3000/api/createParticipant' + result._id
+                                                }
+                                            }
+                                        })
+                                    })
+                            }
+                            if (!eventData) {
+                                console.log("there is no such event found")
+                            }
+                        }
+
+                    })
+                }else {
+                    console.log("something went wrong while finding the participant")
+                }
+            })
+
+        }
+    });
+
+});
+
+
 
 //token
 function verifyToken(req, res, next){

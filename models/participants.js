@@ -7,6 +7,7 @@ const ParticipantsSchema = mongoose.Schema({
     email_address: { type: String, required: true},
     phone_number:String,
     organization: { type: String, required: true},
+    reg_id: {type:String, required: true}
 });
 
 module.exports = mongoose.model('Participants', ParticipantsSchema);
