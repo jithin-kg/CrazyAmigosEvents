@@ -215,7 +215,7 @@ router.post('/list_participants',verifyToken,function (req, res, next) {
                 if (err) {
                     res.status(400).json({message: "There was an error while getting participants"})
                 }
-                if (eventsDoc) {
+                if (participantstsDoc) {
                     res.status(200).json({events: participantstsDoc})
                     console.log(participantstsDoc[2])
                 }
@@ -280,7 +280,6 @@ router.post('/daily_register', verifyToken, jsonParser, function (req, res, next
                             console.log("error while getting  participant data")
 
                         }
-
                     })
                 }else {
                     console.log("something went wrong while finding the participant")
