@@ -216,7 +216,7 @@ router.post('/list_participants',verifyToken,function (req, res, next) {
                     res.status(400).json({message: "There was an error while getting participants"})
                 }
                 if (participantstsDoc) {
-                    res.status(200).json({events: participantstsDoc})
+                    res.status(200).json({participants: participantstsDoc})
                     console.log(participantstsDoc[2])
                 }
 
